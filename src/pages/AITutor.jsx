@@ -16,31 +16,21 @@ const suggestedPrompts = [
 
 const MODELS = [
   {
-    id: 'openai',
-    label: 'ChatGPT',
-    sublabel: 'GPT-4o',
-    emoji: '✨',
-    gradient: 'from-emerald-500 to-teal-400',
-    border: 'border-emerald-500/40',
-    bg: 'bg-emerald-500/10',
-    keyEnv: 'VITE_OPENAI_API_KEY',
-  },
-  {
-    id: 'claude',
-    label: 'Claude',
-    sublabel: 'Sonnet 4',
-    emoji: '🤖',
-    gradient: 'from-violet-500 to-indigo-400',
-    border: 'border-violet-500/40',
-    bg: 'bg-violet-500/10',
-    keyEnv: 'VITE_ANTHROPIC_API_KEY',
-  },
+    id: 'groq',
+    label: 'Llama 3',
+    sublabel: 'Groq Cloud',
+    emoji: '⚡',
+    gradient: 'from-orange-500 to-amber-500',
+    border: 'border-orange-500/40',
+    bg: 'bg-orange-500/10',
+    keyEnv: 'VITE_GROQ_API_KEY',
+  }
 ];
 
 export default function AITutor() {
   const [input, setInput] = useState('');
   const [beginnerMode, setBeginnerMode] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('openai');
+  const [selectedModel, setSelectedModel] = useState('groq');
   const { messages, isLoading, error, sendMessage, clearMessages } = useAI();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -95,7 +85,7 @@ export default function AITutor() {
           <div>
             <h1 className="text-lg font-semibold">AI Tutor</h1>
             <p className="text-xs text-gray-500">
-              {selectedModel === 'openai' ? 'Powered by OpenAI GPT-4o' : 'Powered by Anthropic Claude'}
+              Powered by Groq Open-Source Inference
             </p>
           </div>
         </div>

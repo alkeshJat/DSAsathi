@@ -2,22 +2,22 @@ import { useState, useCallback } from 'react';
 
 const SYSTEM_PROMPT = `You are an expert DSA tutor helping a student learn Data Structures and Algorithms from scratch. Always explain concepts step by step, use simple analogies, provide code examples in the user's chosen language, and gently guide them to the answer rather than giving it outright. When the user shares code, analyze it for bugs, time complexity, and suggest improvements. Keep responses concise but thorough. Format code blocks with proper syntax highlighting using markdown.`;
 
-// ── OpenAI (ChatGPT) ──────────────────────────────────────────────────────────
-async function callOpenAI(apiKey, systemPrompt, messageHistory, userMessage) {
+// ── Groq API (Llama 3) ──────────────────────────────────────────────────────────
+async function callGroq(apiKey, systemPrompt, messageHistory, userMessage) {
   const messages = [
     { role: 'system', content: systemPrompt },
     ...messageHistory.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
   ];
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'llama3-8b-8192',
       messages,
       max_tokens: 2048,
       temperature: 0.7,
@@ -26,43 +26,11 @@ async function callOpenAI(apiKey, systemPrompt, messageHistory, userMessage) {
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `OpenAI API error: ${response.status}`);
+    throw new Error(err?.error?.message || `Groq API error: ${response.status}`);
   }
 
   const data = await response.json();
   return data.choices[0].message.content;
-}
-
-// ── Anthropic (Claude) ────────────────────────────────────────────────────────
-async function callClaude(apiKey, systemPrompt, messageHistory, userMessage) {
-  const messages = [
-    ...messageHistory.map(m => ({ role: m.role, content: m.content })),
-    { role: 'user', content: userMessage },
-  ];
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages,
-    }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `Anthropic API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.content[0].text;
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -75,12 +43,11 @@ export function useAI() {
    * @param {string} userMessage
    * @param {string} context       - optional topic context
    * @param {boolean} beginnerMode - simplify explanations
-   * @param {'openai'|'claude'} selectedModel
+   * @param {'groq'} selectedModel
    */
   const sendMessage = useCallback(
-    async (userMessage, context = '', beginnerMode = false, selectedModel = 'openai') => {
-      const openAIKey = import.meta.env.VITE_OPENAI_API_KEY;
-      const claudeKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+    async (userMessage, context = '', beginnerMode = false, selectedModel = 'groq') => {
+      const groqKey = import.meta.env.VITE_GROQ_API_KEY;
 
       const newUserMsg = { role: 'user', content: userMessage };
       setMessages(prev => [...prev, newUserMsg]);
@@ -98,12 +65,11 @@ export function useAI() {
 
       const fullUserMessage = contextPrefix + userMessage;
 
-      // Determine which keys are available
-      const hasOpenAI = openAIKey && openAIKey !== 'your_openai_api_key_here';
-      const hasClaude = claudeKey && claudeKey !== 'your_anthropic_api_key_here';
+      // Determine if key is available
+      const hasGroq = groqKey && groqKey !== 'your_groq_api_key_here';
 
       // If no keys at all, show simulated response
-      if (!hasOpenAI && !hasClaude) {
+      if (!hasGroq) {
         const simulatedResponse = getSimulatedResponse(userMessage);
         setTimeout(() => {
           setMessages(prev => [...prev, { role: 'assistant', content: simulatedResponse }]);
@@ -115,16 +81,8 @@ export function useAI() {
       try {
         let assistantMessage;
 
-        if (selectedModel === 'openai' && hasOpenAI) {
-          assistantMessage = await callOpenAI(openAIKey, systemPrompt, messages, fullUserMessage);
-        } else if (selectedModel === 'claude' && hasClaude) {
-          assistantMessage = await callClaude(claudeKey, systemPrompt, messages, fullUserMessage);
-        } else if (hasOpenAI) {
-          // Requested model not available, fall back to OpenAI
-          assistantMessage = await callOpenAI(openAIKey, systemPrompt, messages, fullUserMessage);
-        } else {
-          // Fall back to Claude
-          assistantMessage = await callClaude(claudeKey, systemPrompt, messages, fullUserMessage);
+        if (hasGroq) {
+          assistantMessage = await callGroq(groqKey, systemPrompt, messages, fullUserMessage);
         }
 
         setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
@@ -269,7 +227,7 @@ Here are some key points to consider:
 
 Would you like me to dive deeper into any specific aspect? Feel free to share your code and I'll help debug it! 💡
 
-*Note: Add your OpenAI or Anthropic API key in the .env file for full AI-powered responses.*`;
+*Note: Add your Groq API key in the .env file for full AI-powered responses.*`;
 }
 
 export default useAI;
